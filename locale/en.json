@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Chat mode",
+    "description": "Pure conversation: no tools and no system-prompt injection. Tools registered in the host's global layer are stripped inside this preset's scope too, so each request carries nothing but the conversation itself."
+  }
+}

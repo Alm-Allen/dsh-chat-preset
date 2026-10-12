@@ -1,0 +1,115 @@
+# Chat 模式（chat）：覆盖原生 `minimal` 预设的组合层。
+#
+# 本包是一个 dsh 插件（bundle）：package.json 的 `dsh.bundle.patch` 指向本文件。一个 profile
+# 只要在 `dsh.profile.bundles` 里列出本包，这一整块就会在 profile 自有 patch **之前**应用。
+# 组合顺序见 @deepseek-ai/dsh-app-boot：各 bundle 的 patch（按 bundles 顺序）→ profile 自己的
+# cordis.patch.yml → launcher 的 --patch。
+#
+# 本文件**覆盖**随 dsh 出货的 `minimal` 预设，而不是新增一个预设：顶层 `- id: preset-minimal`
+# 指向 `@deepseek-ai/dsh-web-app` 那份 `insert` 出来的同名行——Loader 的 override 规则是
+# 「带 `id` 且不带 `insert` 的行，替换既有行的字段」。`config.id` 仍是 `minimal`（会话保存的
+# 是它），`order` 也照旧。
+#
+# 显示名由本文件自己声明：`dsh-client-ui-agent-preset` 的 `isBuiltInPreset()` 只在预设
+# **没有**发布 `name` 时才回落到内置 locale 文案（「极简模式」/「Agent 仅使用终端工具完成
+# 任务」），一旦写了 `config.name` / `description` 就用自己那一份。所以这里显示为
+# 「Chat 模式」，描述也跟着换成纯对话的说法——不改的话名字与实际行为会自相矛盾。
+#
+# 三条必须守住的规则（见 @deepseek-ai/dsh-agent-preset 的 cordis-composition-reference skill）：
+#
+#   1. **`config` 是整体替换，绝不深合并**——shipped `minimal` 的 `plugins` 列表有两项：
+#      `persona` 与 `persistent-shell`（group：`pty` + `terminal-bash` / `persistent-bash` /
+#      `terminal-pwsh` / `persistent-pwsh`）。本文件**只保留 persona、整个
+#      `persistent-shell` 不重述**——「爆改」的含义就是把它删掉：纯对话不提供任何工具；
+#   2. `name` 为真值时只是**断言**既有插件名，不是重命名——所以这里保持
+#      `@deepseek-ai/dsh-agent-preset`，而 `config.id` 必须写成 `minimal`：会话保存的是它；
+#   3. 目标行没匹配上时 Loader 只警告并跳过，不会弄坏 profile——所以本包单独装、或 shipped
+#      改了行名，后果都是「覆盖不生效」，而不是起不来。
+#
+# 回退：在插件页停用或卸载本包即可——覆盖层消失，shipped 的 `insert` 恢复原样，「极简模式」
+# 回到它原本的样子（一句话 persona + 持久终端工具）。
+#
+# 两版兼容：`minimal` 的 shipped 在 **0.2.0-rc.2 与 0.2.1-alpha.2 里逐字相同**（已核对：两版
+# 都是 61 行、同样的 persona 与 persistent-shell），所以本文件没有「版本特有行」要取舍，比
+# 雅言/仓颉那两份省事得多。本文件引用的两行也都两版可用：`@deepseek-ai/dsh-persona` 是核心
+# 包，`no-global-tools` 就在本包内。
+#
+# 刻意不挂的行，以及理由：
+#   - `compaction`（`compaction-basic` + `command-compact` + `tool-result-pruner`）：
+#     不折叠、不摘要、不改写历史。代价是长对话最终会撞上模型上下文窗口，而这正是「纯对话」
+#     的直接语义；需要自动压缩时，把 `standard` 预设里的整个 `compaction` group 原样复制进来
+#     （`tool-result-pruner` 必须与 `compaction-basic` 共享同一个 realm，`token-meter`
+#     留在宿主平面）。
+#   - `agent-instructions`：会把 AGENTS.md 之类读成系统提示词。
+#   - `skill-filesystem` / `tool-skill`：会注入技能目录与提示词、并加一个工具。
+#   - `command-*`、`plan-mode`、`present`、`tool-ask-user`、`tool-todo`、`tool-web`、
+#     `tool-fs*`、`tool-bash` / `tool-pwsh`、`tool-jobs`、委派与 workflow 全套：都属于
+#     「往里加东西」，与纯对话无关。
+- id: preset-minimal
+  name: "@deepseek-ai/dsh-agent-preset"
+  config:
+    id: minimal
+    order: 3
+    # 自定义显示名与描述：写了这两项就不再回落到内置的「极简模式」文案（理由见文件头）。
+    name: "Chat 模式"
+    description: "纯对话模式：零工具、零系统提示词注入。预设不挂任何工具行，并在自身 scope 内摘掉宿主全局层注册的工具；persona 以空前缀作为唯一系统提示词段落，同时关闭运行时上下文快照。模型每次请求只看到对话历史本身。"
+    plugins:
+      # The `chat` agent preset（Chat 模式）：纯对话组合，零工具、零系统提示词。
+      #
+      # 这是 AGENT-PLANE 组合。roster 在 standing scope 下挂载本文件一次，每个选择本
+      # 预设的会话按 scope 父子关系加入；宿主组合（`base.cordis.yml` +
+      # `web.cordis.yml`）保留预设绝不能拥有的东西：各注册表本身、沙箱与审批栈、
+      # 持久化、模型路由。Web 表面已经把宿主里所有 agent-plane 行禁用
+      # （`dsh-web-app/cordis.patch.yml` 的 "the agent plane moves behind agent
+      # presets" 一段：tool-bash/tool-pwsh/tool-fs/tool-fs-search/tool-jobs/
+      # tool-skill/tool-todo/tool-goal/tool-web/tool-subagent*/tool-workflow/
+      # tool-ralph/agent-instructions/plan-mode/compaction-basic/... 全部
+      # `disabled: true`），所以「这个文件里没有工具行」就等于「预设层没有工具」。
+      #
+      # 整个预设只有两行，合起来定义「纯对话」：
+      #
+      # 一、persona —— 零系统提示词。
+      #   `prefix: ''` + `complete: true` 让空文本的 `deployment:persona-prefix`
+      #   成为该 agent 唯一的系统提示词段落：harness 身份（"You are an AI agent
+      #   powered by DeepSeek Harness."）、部署 persona、Web 表面段落、plan-mode
+      #   段落、各工具的 guidance 段，以及 `system-prompt/assemble` 瀑布上后续监听器
+      #   追加的文本，全部被抑制（`complete` 在瀑布之后把 sections 复原为这一节
+      #   本身）。空模板在渲染时被丢弃，最终 `renderPrompt()` 返回空串。
+      #   `includeRuntimeContext: false` 再关掉该 scope 下全部动态上下文快照（沙箱
+      #   策略、审批策略、委派说明），并丢弃组装监听器新增的上下文——这个开关是全有
+      #   或全无，本预设要的就是「全无」。
+      #   本机默认路由（`llm-pi-ai` 的 openai-completions）下，那条内容为空的 system
+      #   记录会被适配器整条丢掉（`splitSystemPrompt`：前导 system 文本为空则不发
+      #   systemPrompt），所以模型收到的就是对话本身，连一条空 system 消息都没有。
+      #
+      # 二、no-global-tools —— 零工具的另一半。
+      #   预设层不挂工具行，只解决「本预设不注册工具」；宿主侧仍会把工具注册进
+      #   **全局层**并被每个 agent scope 继承。这一行在 preset 自己的 standing
+      #   scope 上声明 `tools.restrict({ allow: [] })`：`restrict` 过滤的正是「本
+      #   scope 继承到的东西」（全局层加祖先 scope 链上的每一层），空 `allow` 就是
+      #   「继承面全部不可见」，与工具名和注册时刻都无关。
+      #   之所以用 `restrict` 而不是快照式 `deny` 名单：提供方可以 `await` 之后才
+      #   异步注册工具，而 preset 的行在 `tools` 服务一出现就激活，快照名单会在工具
+      #   注册之前生成并因此为空，于是一条限制都不设。实现与理由见
+      #   `plugins/no-global-tools.mjs`。
+      #
+      # 于是每一次模型请求对模型而言只有：对话历史 + 新的用户消息；可调用的工具一个
+      # 都没有。
+
+      # ── identity：空系统提示词 ───────────────────────────────────────────────────
+
+      - id: persona
+        name: "@deepseek-ai/dsh-persona"
+        config:
+          prefix: ''
+          complete: true
+          includeRuntimeContext: false
+
+      # ── zero tools：连全局层的工具也摘掉 ─────────────────────────────────────────
+
+      # 这一行按**包名**解析，不是 profile 目录下的相对路径：预设里的行由挂载本预设的
+      # Loader 以 profile 目录为基准解析（`mountPreset` 的 baseUrl），而插件就在本包
+      # 里——包入口即 `plugins/no-global-tools.mjs`（见 package.json 的 `exports`）。
+      # 本包同时是 profile 的一个 bundle，所以一定命中 profile 的模块解析。
+      - id: no-global-tools
+        name: "@alm-allen/dsh-chat-preset/no-global-tools"

@@ -121,8 +121,9 @@ node plugins/self-test.mjs
 - **没有工具可调**。这是本模式的定义，不是缺陷。要在纯对话与干活之间切换，切回标准模式
   或 PTC 模式即可。
 - **覆盖会冻结整份 `config`**。dsh 升级后 shipped 的 `minimal` 若有改动，本包不会自动跟随。
-  升级后把 `cordis.patch.yml` 与 `dsh-web-app/presets/minimal.patch.yml` 对一遍即可——好消息
-  是 `minimal` 在 `0.2.0-rc.2` 与 `0.2.1-alpha.2` 里逐字相同，比雅言/仓颉省事。
+  升级后把 `cordis.patch.yml` 与 `dsh-web-app/presets/minimal.patch.yml` 对一遍即可。基准版本是
+  **0.2.1-rc.1**：该版的 shipped `minimal` 比 0.2.1-alpha.2 多了 `tool-fs`（只保留
+  `readImage`）与 `compaction` group；本包照旧**刻意不挂**这两行。
 
 ## 兼容性
 

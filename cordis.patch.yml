@@ -29,10 +29,10 @@
 # 回退：在插件页停用或卸载本包即可——覆盖层消失，shipped 的 `insert` 恢复原样，「极简模式」
 # 回到它原本的样子（一句话 persona + 持久终端工具）。
 #
-# 两版兼容：`minimal` 的 shipped 在 **0.2.0-rc.2 与 0.2.1-alpha.2 里逐字相同**（已核对：两版
-# 都是 61 行、同样的 persona 与 persistent-shell），所以本文件没有「版本特有行」要取舍，比
-# 雅言/仓颉那两份省事得多。本文件引用的两行也都两版可用：`@deepseek-ai/dsh-persona` 是核心
-# 包，`no-global-tools` 就在本包内。
+# 基准版本：**0.2.1-rc.1**（Web 的全局 npm 包与 Desktop 内置运行时都是它）。相对 0.2.1-alpha.2，
+# shipped `minimal` 新增了 `tool-fs`（只保留 `readImage`）与 `compaction` group——两行都属
+# 「往里加东西」，本文件照旧**刻意不挂**，纯对话语义不变。本文件引用的两行都可用：
+# `@deepseek-ai/dsh-persona` 是核心包，`no-global-tools` 就在本包内。
 #
 # 刻意不挂的行，以及理由：
 #   - `compaction`（`compaction-basic` + `command-compact` + `tool-result-pruner`）：

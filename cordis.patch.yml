@@ -113,3 +113,14 @@
       # 本包同时是 profile 的一个 bundle，所以一定命中 profile 的模块解析。
       - id: no-global-tools
         name: "@alm-allen/dsh-chat-preset/no-global-tools"
+
+      # ── zero injection：连 Agent 作用域注入的 tools 与 contexts 也摘掉 ──────────────
+      #
+      # `no-global-tools` 挡的是「继承来的」工具（全局层 + 祖先层）；agent 自己那层注册
+      # 的工具它挡不住（`restrict` 从不约束 own layer）。像 Agent Teams 这类在
+      # `agent.ctx` 上注册工具、并挂一个 required 的 `systemPrompt.context` 的插件，会
+      # 同时绕过 `persona.complete`（只管 sections）与 `includeRuntimeContext`（只过滤
+      # 可选 context）：9 个工具与 `team:identity` 都会进纯对话会话。这一行在组装瀑布
+      # 末端把 tools 与 contexts 清空，作为「零注入」的最后一道兜底。
+      - id: zero-injection
+        name: "@alm-allen/dsh-chat-preset/zero-injection"

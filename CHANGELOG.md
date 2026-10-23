@@ -7,6 +7,21 @@ Release 就退回 GitHub 自动生成的提交清单。
 
 版本号用日期式（`2026.10.12`），与 `package.json` 的 `version`、tag 名同号。
 
+## [2026.10.23] - 2026-10-23
+
+### 补上 Agent 作用域注入的兜底：zero-injection
+
+- 原来「零工具 + 零系统提示词」靠两道防线：`persona.complete` 抑制 sections、
+  `tools.restrict({ allow: [] })` 摘掉继承来的工具。但 `restrict` 从不约束 own layer，
+  `includeRuntimeContext: false` 也只过滤可选 context——像 Agent Teams 这类在
+  `agent.ctx` 上注册工具、再挂一个 `required` 的 `systemPrompt.context` 的插件，会同时
+  绕过两道防线：9 个团队工具与 `team:identity` 都会进纯对话会话。
+- 新增 `plugins/zero-injection.mjs`：在 `system-prompt/assemble` 瀑布末端把 `tools`
+  与 `contexts` 清空，作为「零注入」的最后一道兜底；sections 无需再动，
+  `persona.complete` 已在组装引擎里把它们恢复成 persona 那一节。
+- `cordis.patch.yml` 增加 `zero-injection` 行，`package.json` 补 `./zero-injection` 导出；
+  `self-test.mjs` 增加三条断言（行数、包名引用、清空语义），共 12 项。
+
 ## [2026.10.17] - 2026-10-17
 
 ### 适配 dsh 0.2.1-rc.1

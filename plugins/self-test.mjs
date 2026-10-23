@@ -44,12 +44,15 @@ check(
 
 const pluginIds = [...patch.matchAll(/^ {6}- id: (\S+)/gm)].map((m) => m[1])
 check(
-	'顶层插件行恰好是 persona + no-global-tools',
-	pluginIds.length === 2 && pluginIds[0] === 'persona' && pluginIds[1] === 'no-global-tools',
+	'顶层插件行恰好是 persona + no-global-tools + zero-injection',
+	pluginIds.length === 3 &&
+		pluginIds[0] === 'persona' &&
+		pluginIds[1] === 'no-global-tools' &&
+		pluginIds[2] === 'zero-injection',
 	`实际：${pluginIds.join(', ') || '(空)'}`
 )
 
-const allowed = ['preset-minimal', 'persona', 'no-global-tools']
+const allowed = ['preset-minimal', 'persona', 'no-global-tools', 'zero-injection']
 const extra = [...patch.matchAll(/^\s*- id: (\S+)/gm)]
 	.map((m) => m[1])
 	.filter((id) => !allowed.includes(id))
@@ -86,6 +89,23 @@ check(
 	existsSync(join(root, 'plugins', 'no-global-tools.mjs')) &&
 		manifest.exports['./no-global-tools'] !== undefined,
 	''
+)
+
+check(
+	'zero-injection 按包名引用',
+	patch.includes(manifest.name + '/zero-injection'),
+	'与 no-global-tools 同理：预设里的行以 profile 目录为解析基准，写相对路径解析不到本包'
+)
+
+const zeroInjection = readFileSync(join(root, 'plugins', 'zero-injection.mjs'), 'utf8')
+check(
+	'zero-injection 在组装末端清空 tools 与 contexts',
+	existsSync(join(root, 'plugins', 'zero-injection.mjs')) &&
+		manifest.exports['./zero-injection'] !== undefined &&
+		/contexts: \[\]/.test(zeroInjection) &&
+		/tools: \[\]/.test(zeroInjection) &&
+		/system-prompt\/assemble/.test(zeroInjection),
+	'agent 作用域注册的工具与 required context 绕得过 persona 与 restrict，只能在这里摘'
 )
 
 // ── 结果 ────────────────────────────────────────────────────────────────────────

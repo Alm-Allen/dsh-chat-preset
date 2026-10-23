@@ -1,6 +1,6 @@
 {
   "name": "@alm-allen/dsh-chat-preset",
-  "version": "2026.10.17",
+  "version": "2026.10.23",
   "description": "Chat 模式（chat）：把 DeepSeek Harness 的原生极简模式改成纯对话组合——零工具、零系统提示词注入；按 Loader 行 id 覆盖 preset-minimal，不新增预设条目。",
   "type": "module",
   "license": "MIT",
@@ -8,6 +8,7 @@
   "exports": {
     ".": "./plugins/no-global-tools.mjs",
     "./no-global-tools": "./plugins/no-global-tools.mjs",
+    "./zero-injection": "./plugins/zero-injection.mjs",
     "./self-test": "./plugins/self-test.mjs",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./locale/*.json": "./locale/*.json",
